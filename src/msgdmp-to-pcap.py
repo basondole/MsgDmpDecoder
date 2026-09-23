@@ -213,6 +213,7 @@ def bgp_message(bgp_hex: str) -> bytes:
     #    2 bytes: Length
     #    1 byte : Type
     minimum_bgp_length = 19
+    # TODO: Just print a pretty error instead of a scary exception traceback
     assert (
         len(message) >= minimum_bgp_length
     ), f"BGP message is too short: {len(message)} bytes"
@@ -491,18 +492,30 @@ def generate_bgp_packet(bgp_message: bytes, options: PacketOptions) -> bytes:
 
 
 def write_pcap(packet: bytes, filename: Path) -> None:
-    """Creates and saves a Wireshark compatible `.pcap` file."""
+    """Creates and saves a Wireshark compatible `.pcap` file.
+
+    PCap file structure:
+    ```
+    FILE
+    │
+    ├── Global Header
+    │   ├── Magic number
+    │   ├── Version
+    │   ├── Snapshot Length
+    │   └── Link-layer Type
+    │
+    ├── Packet Record Header
+    │   ├── Timestamp
+    │   ├── Captured Length
+    │   └── Original Length
+    │
+    └── Captured Packet
+    ```
+    """
 
     with filename.open("wb") as f:
         # Every classic PCAP file starts with a global header 24 bytes.
         #
-        # This tells Wireshark things such as:
-        #   - PCAP format
-        #   - Version
-        #   - Capture length
-        #   - Link-layer type
-        #
-        # PCAP headers are written little-endian.
         # Struct format string:
         #   < = little-endian
         #   H = unsigned short (2 bytes)
@@ -520,12 +533,6 @@ def write_pcap(packet: bytes, filename: Path) -> None:
             )
         )
         # Every packet in a PCAP has a packet record header.
-        #
-        # It contains:
-        #   - timestamp seconds
-        #   - timestamp microseconds
-        #   - captured length
-        #   - original length
         #
         # We don't know the original timestamp so using zero for this packet.
         timestamp_seconds = 0
@@ -581,7 +588,7 @@ def generate_pcap(bgp_hex: str, options: PacketOptions) -> None:
     print("=" * 60)
 
 
-defaultTCPOptions = TCPOptions(
+default_TCPOptions = TCPOptions(
     src_port=179,  # Making src the BGP server.
     dst_port=12345,  # Synthetic ephemeral port for the client.
     seq=1000,  # Synthetic sequence number.
@@ -592,7 +599,7 @@ defaultTCPOptions = TCPOptions(
     urgent=0,  # Urgent pointer not being used.
 )
 
-defaultIPOptions = IPOptions(
+default_IPOptions = IPOptions(
     # We don't know the real source and destination IPs from the Cisco dump so
     # we use some syntetic addresses.
     src_ip="0.0.0.0",
@@ -623,7 +630,7 @@ defaultIPOptions = IPOptions(
     checksum=0,  # Initial checksum value.
 )
 
-defaultEtherOptions = EthernetOptions(
+default_EtherOptions = EthernetOptions(
     # We don't have the real MAC addresses because the Cisco MSGDUMP only
     # contains the BGP payload.
     dst_mac=b"\x00\x11\x22\x33\x44\x55",
@@ -648,10 +655,11 @@ Example:
 
     return generate_pcap(
         "".join(args[1:]),
+        # TODO: Accept custom packet fields passed as flags via CLI arguments.
         PacketOptions(
-            tcp=defaultTCPOptions,
-            ip=defaultIPOptions,
-            ethernet=defaultEtherOptions,
+            default_TCPOptions,
+            default_IPOptions,
+            default_EtherOptions,
         ),
     )
 
