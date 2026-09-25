@@ -229,11 +229,7 @@ fn bgp_message(bgp_hex: &str) -> Vec<u8> {
 ///       Therefore 20-byte TCP header with no options is represented as 5
 /// * `flags` - TCP flags to enable.
 ///
-fn tcp_offset_flags(
-    /* TCP flags to enable accepted values: FIN, SYN, RST, PSH, ACK, URG, ECE, CWR */
-    flags: &[TCPFlag],
-    data_offset: u8,
-) -> u16 {
+fn tcp_offset_flags(flags: &[TCPFlag], data_offset: u8) -> u16 {
     let mut tcp_flags = 0u8;
     for &flag in flags {
         // Each TCP flag occupies a different bit. The selected flag values
