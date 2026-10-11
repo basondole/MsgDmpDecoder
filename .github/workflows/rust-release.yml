@@ -36,7 +36,7 @@ jobs:
 
       - name: Compile
         run: |
-          rustc msgdmp-to-pcap.rs -O -o msgdmp-to-pcap${{ matrix.ext }}
+          rustc src/msgdmp-to-pcap.rs -O -o msgdmp-to-pcap${{ matrix.ext }}
 
       - name: Rename and Stage
         shell: bash
